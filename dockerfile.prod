@@ -1,38 +1,32 @@
-# Etapa 1: Instalar dependencias
+# Etapa 1: Instalar todas las dependencias (prod y dev)
 FROM node:20-slim AS deps
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 
-# Etapa 2: Build del proyecto
+# Etapa 2: Build y Prisma
 FROM node:20-slim AS build
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Omitimos Prisma aquí porque requiere DB
+RUN npx prisma generate
 RUN npm run build
 
-# Etapa 3: Imagen final
+# Etapa 3: Imagen final de producción
 FROM node:20-slim
 
 WORKDIR /app
 
-# Copiamos archivos necesarios
+# Copiar archivos necesarios desde la etapa anterior
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
-COPY package*.json ./
+COPY package.json ./
 
 EXPOSE 3004
 
-# Ejecutamos Prisma y la app al iniciar el contenedor
-CMD bash -c "\
-  echo '📦 Generando Prisma Client...' && \
-  npx prisma generate && \
-  echo '🚀 Ejecutando migraciones...' && \
-  npx prisma migrate deploy && \
-  echo '🟢 Iniciando aplicación NestJS...' && \
-  node dist/main.js"
+# Ejecutar migraciones y luego iniciar la app
+CMD bash -c "echo '📦 Ejecutando migraciones con Prisma...' && npx prisma migrate deploy && echo '🚀 Iniciando aplicación NestJS...' && node dist/main.js"
