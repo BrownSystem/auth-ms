@@ -7,7 +7,12 @@ import { LoginUserDto, RegisterUserDto } from './dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @MessagePattern({ cmd: 'find.all.user' })
+  @MessagePattern({ cmd: 'find.all.users' })
+  findAll() {
+    return this.authService.findAllUser();
+  }
+
+  @MessagePattern({ cmd: 'find.all.user.branch' })
   findAllMany(@Payload() branchId: string) {
     return this.authService.findAll(branchId);
   }
