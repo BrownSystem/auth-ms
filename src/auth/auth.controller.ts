@@ -2,15 +2,11 @@ import { Controller } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { LoginUserDto, RegisterUserDto } from './dto';
+import { UpdateUserchDto } from './dto/update-user.dto';
 
 @Controller()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @MessagePattern({ cmd: 'find.all.users' })
-  findAll() {
-    return this.authService.findAllUser();
-  }
 
   @MessagePattern({ cmd: 'find.all.user.branch' })
   findAllMany(@Payload() branchId: string) {
@@ -35,5 +31,10 @@ export class AuthController {
   @MessagePattern({ cmd: 'auth.verify.token' })
   verifyToken(@Payload() token: string) {
     return this.authService.verifyToken(token);
+  }
+
+  @MessagePattern({ cmd: 'auth.update.user' })
+  update(@Payload() updateUserDto: UpdateUserchDto) {
+    return this.authService.updateUser(updateUserDto);
   }
 }

@@ -16,6 +16,7 @@ import { JwtService } from '@nestjs/jwt';
 import { IJwtPayload } from './interfaces/jwt-payload.interface';
 import { envs, NATS_SERVICE } from 'src/config';
 import { firstValueFrom } from 'rxjs';
+import { UpdateUserchDto } from './dto/update-user.dto';
 
 @Injectable()
 export class AuthService extends PrismaClient implements OnModuleInit {
@@ -33,45 +34,18 @@ export class AuthService extends PrismaClient implements OnModuleInit {
     this.logger.log('PostgresDB connected');
   }
 
-  async findAllUser() {
-    try {
-      const users = await this.user.findMany({
-        where: {
-          available: true,
-        },
-        select: {
-          name: true,
-          email: true,
-          role: true,
-          branchId: true,
-        },
-      });
-
-      if (users.length === 0) {
-        return {
-          message: '[FIND_ALL_USERS] no hay usuarios en esta lista.',
-          status: HttpStatus.NOT_FOUND,
-        };
-      }
-
-      return users;
-    } catch (error) {
-      return {
-        message: '[FIND_ALL_USER] error al retornar usuarios',
-        status: HttpStatus.NOT_FOUND,
-      };
-    }
-  }
-
   async findAll(branchId: string) {
     try {
       const users = await this.user.findMany({
         where: {
           branchId,
+          available: true,
         },
         select: {
+          id: true,
           name: true,
           email: true,
+          branchId: true,
           role: true,
         },
       });
@@ -156,11 +130,67 @@ export class AuthService extends PrismaClient implements OnModuleInit {
     }
   }
 
+  async updateUser(updateUserDto: UpdateUserchDto) {
+    const { id, email, name, role, branchId, password, available } =
+      updateUserDto;
+
+    try {
+      const user = await this.user.findUnique({
+        where: { id },
+      });
+
+      if (!user) {
+        throw new RpcException({
+          status: 404,
+          message: '[UPDATE_USER] User not found',
+        });
+      }
+
+      let branchValidated = null;
+      if (branchId) {
+        branchValidated = await firstValueFrom(
+          this.client.send({ cmd: 'find_one_branch_by_id' }, branchId),
+        );
+
+        if (!branchValidated) {
+          throw new RpcException({
+            status: 404,
+            message: '[UPDATE_USER] Branch not found',
+          });
+        }
+      }
+
+      const updatedUser = await this.user.update({
+        where: { id },
+        data: {
+          ...(email && { email }),
+          ...(name && { name }),
+          ...(role && { role }),
+          ...(branchId && { branchId }),
+          ...(password && { password: bcrypt.hashSync(password, 10) }),
+          ...(available !== undefined && { available: available }),
+        },
+      });
+
+      const { password: _, ...rest } = updatedUser;
+      return {
+        status: 200,
+        message: '[UPDATE_USER] User updated successfully',
+        data: rest,
+      };
+    } catch (error) {
+      throw new RpcException({
+        status: 400,
+        message: `[UPDATE_USER] ${error.message}`,
+      });
+    }
+  }
+
   async loginUser(loginUserDto: LoginUserDto) {
     const { email, password } = loginUserDto;
     try {
       const user = await this.user.findUnique({
-        where: { email },
+        where: { email, available: true },
       });
       if (!user) {
         throw new RpcException({
