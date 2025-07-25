@@ -21,7 +21,6 @@ export class RegisterUserDto {
   email: string;
 
   @IsString()
-  @IsStrongPassword()
   password: string;
 
   @IsString()

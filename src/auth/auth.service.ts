@@ -34,7 +34,35 @@ export class AuthService extends PrismaClient implements OnModuleInit {
     this.logger.log('PostgresDB connected');
   }
 
-  async findAll(branchId: string) {
+  async findAll() {
+    try {
+      const users = await this.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          branchId: true,
+          role: true,
+        },
+      });
+
+      if (users.length === 0) {
+        return {
+          message: '[FIND_ALL_USERS] no hay usuarios en esta lista.',
+          status: HttpStatus.NOT_FOUND,
+        };
+      }
+
+      return users;
+    } catch (error) {
+      return {
+        message: '[FIND_ALL_USER] error al retornar usuarios',
+        status: HttpStatus.NOT_FOUND,
+      };
+    }
+  }
+
+  async findAllBranchId(branchId: string) {
     try {
       const users = await this.user.findMany({
         where: {

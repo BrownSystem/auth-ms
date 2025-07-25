@@ -8,9 +8,14 @@ import { UpdateUserchDto } from './dto/update-user.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @MessagePattern({ cmd: 'find.all.user' })
+  findAllMany() {
+    return this.authService.findAll();
+  }
+
   @MessagePattern({ cmd: 'find.all.user.branch' })
-  findAllMany(@Payload() branchId: string) {
-    return this.authService.findAll(branchId);
+  findAllManyBranchId(@Payload() branchId: string) {
+    return this.authService.findAllBranchId(branchId);
   }
 
   @MessagePattern({ cmd: 'auth.register.user' })
