@@ -37,12 +37,14 @@ export class AuthService extends PrismaClient implements OnModuleInit {
   async findAll() {
     try {
       const users = await this.user.findMany({
+        where: { available: true },
         select: {
           id: true,
           name: true,
           email: true,
           branchId: true,
           role: true,
+          available: true,
         },
       });
 
